@@ -67,7 +67,7 @@
   }
   function renderEmpty() {
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
-      <span class="hint" data-q="What sold best last week?">What sold best last week?</span>
+      <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
       <span class="hint" data-q="Revenue by branch this month">Revenue by branch this month</span>
       <span class="hint" data-q="How many Challah did we sell in August 2026?">Challah in August 2026</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => { $("input").value = h.dataset.q; $("input").focus(); }));
