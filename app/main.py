@@ -63,7 +63,9 @@ class ChatIn(BaseModel):
 
 @app.get("/", include_in_schema=False)
 def index():
-    return FileResponse(ROOT / "static" / "index.html")
+    # no-cache: browsers re-check the page on every visit (cheap, via ETag), so the ?v= on
+    # styles.css and app.js reaches them after a deploy. Bump ?v= when either file changes.
+    return FileResponse(ROOT / "static" / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health")

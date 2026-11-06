@@ -12,6 +12,15 @@ def test_health_ok(client):
     assert r.json()["status"] == "ok"
 
 
+def test_index_is_revalidated_and_assets_are_versioned(client):
+    # Browsers must re-check the page, so a new ?v= on the CSS/JS reaches them after a deploy.
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "no-cache"
+    assert "/static/styles.css?v=" in r.text
+    assert "/static/app.js?v=" in r.text
+
+
 def test_login_required_and_wrong_password(client):
     client.cookies.clear()
     assert client.get("/api/conversations").status_code == 401
