@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from . import auth, limits, recipe
+from . import auth, limits
 from .agent import get_model_client, run_turn
 from .config import ROOT, settings
 from .db import Conversation, Message, SessionLocal, engine, get_db, init_db
@@ -133,21 +133,6 @@ def list_messages(conversation_id: int, request: Request, db: Session = Depends(
     rows = db.scalars(select(Message).where(Message.conversation_id == conv.id).order_by(Message.id)).all()
     return [{"id": m.id, "role": m.role, "content": m.content, "has_image": m.has_image,
              "created_at": m.created_at.isoformat(timespec="seconds")} for m in rows]
-
-
-@app.post("/api/conversations/recipe")
-def save_recipe(request: Request, db: Session = Depends(get_db)):
-    """The recipe suggestion: saves a new conversation with the fixed question and recipe.
-    No model call and no run row; the user message counts toward the hourly limit."""
-    user = auth.current_user(request, db)
-    limits.check_rate_limit(db, user.id)
-    conv = Conversation(user_id=user.id, title=recipe.TITLE)
-    db.add(conv)
-    db.flush()
-    db.add(Message(conversation_id=conv.id, user_id=user.id, role="user", content=recipe.QUESTION))
-    db.add(Message(conversation_id=conv.id, user_id=user.id, role="assistant", content=recipe.ANSWER))
-    db.commit()
-    return {"id": conv.id, "title": conv.title}
 
 
 @app.post("/api/chat")
