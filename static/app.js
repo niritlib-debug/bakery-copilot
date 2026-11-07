@@ -77,15 +77,36 @@
   }
 
   // ---------- recipe hint ----------
-  // The server saves a "Chocolate cake recipe" conversation with fixed text (app/recipe.py):
-  // no model call, no cost. Then we open it like any other saved chat.
+  // A fixed answer shown in the browser: no model call, no cost, not saved to the conversation.
   const RECIPE_QUESTION = "Do you want a chocolate cake recipe?";
-  async function showRecipe() {
-    try {
-      const conv = await api("/api/conversations/recipe", { method: "POST" });
-      state.current = conv.id;
-      await loadConversations();
-    } catch (err) { setStatus(err.message); }
+  const RECIPE = `**Simple chocolate cake** (one 24 cm round pan, about 10 slices)
+
+**Ingredients**
+- 2 cups (250 g) flour
+- 2 cups (400 g) sugar
+- ¾ cup (75 g) cocoa powder
+- 2 tsp baking powder
+- 1 tsp baking soda
+- ½ tsp salt
+- 2 eggs
+- 1 cup (240 ml) milk
+- ½ cup (120 ml) vegetable oil
+- 2 tsp vanilla extract
+- 1 cup (240 ml) hot water or hot coffee
+
+**Steps**
+1. Heat the oven to 180 °C. Grease the pan and line the bottom with baking paper.
+2. In a large bowl, mix the flour, sugar, cocoa, baking powder, baking soda and salt.
+3. Add the eggs, milk, oil and vanilla. Whisk for 2 minutes until smooth.
+4. Stir in the hot water. The batter will be thin; that is right.
+5. Pour into the pan and bake 35–40 minutes, until a toothpick in the centre comes out clean.
+6. Cool 10 minutes in the pan, then turn out onto a rack and cool completely.
+
+**Quick chocolate glaze (optional):** melt 100 g dark chocolate with ½ cup (120 ml) cream, stir until smooth, and pour over the cooled cake.`;
+  function showRecipe() {
+    if ($("messages").querySelector(".empty")) $("messages").innerHTML = "";
+    addBubble("user", RECIPE_QUESTION);
+    addBubble("assistant", RECIPE);
   }
   $("new-chat").addEventListener("click", () => { state.current = null; $("conv-title").textContent = "New chat"; renderConversations(); renderEmpty(); $("input").focus(); });
 
