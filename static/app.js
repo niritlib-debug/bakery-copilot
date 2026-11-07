@@ -69,8 +69,45 @@
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
       <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
       <span class="hint" data-q="Revenue by branch this month">Revenue by branch this month</span>
-      <span class="hint" data-q="How many Challah did we sell in August 2026?">Challah in August 2026</span></div>`;
-    $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => { $("input").value = h.dataset.q; $("input").focus(); }));
+      <span class="hint" data-q="How many Challah did we sell in August 2026?">Challah in August 2026</span>
+      <span class="hint" data-recipe="1">${RECIPE_QUESTION}</span></div>`;
+    $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
+      if (h.dataset.recipe) { showRecipe(); return; }
+      $("input").value = h.dataset.q; $("input").focus();
+    }));
+  }
+
+  // ---------- recipe hint ----------
+  // A fixed answer shown in the browser: no model call, no cost, not saved to the conversation.
+  const RECIPE_QUESTION = "Do you want a chocolate cake recipe?";
+  const RECIPE = `**Simple chocolate cake** (one 24 cm round pan, about 10 slices)
+
+**Ingredients**
+- 2 cups (250 g) flour
+- 2 cups (400 g) sugar
+- ¾ cup (75 g) cocoa powder
+- 2 tsp baking powder
+- 1 tsp baking soda
+- ½ tsp salt
+- 2 eggs
+- 1 cup (240 ml) milk
+- ½ cup (120 ml) vegetable oil
+- 2 tsp vanilla extract
+- 1 cup (240 ml) hot water or hot coffee
+
+**Steps**
+1. Heat the oven to 180 °C. Grease the pan and line the bottom with baking paper.
+2. In a large bowl, mix the flour, sugar, cocoa, baking powder, baking soda and salt.
+3. Add the eggs, milk, oil and vanilla. Whisk for 2 minutes until smooth.
+4. Stir in the hot water. The batter will be thin; that is right.
+5. Pour into the pan and bake 35–40 minutes, until a toothpick in the centre comes out clean.
+6. Cool 10 minutes in the pan, then turn out onto a rack and cool completely.
+
+**Quick chocolate glaze (optional):** melt 100 g dark chocolate with ½ cup (120 ml) cream, stir until smooth, and pour over the cooled cake.`;
+  function showRecipe() {
+    if ($("messages").querySelector(".empty")) $("messages").innerHTML = "";
+    addBubble("user", RECIPE_QUESTION);
+    addBubble("assistant", RECIPE);
   }
   $("new-chat").addEventListener("click", () => { state.current = null; $("conv-title").textContent = "New chat"; renderConversations(); renderEmpty(); $("input").focus(); });
 
