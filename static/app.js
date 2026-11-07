@@ -69,7 +69,7 @@
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
       <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
       <span class="hint" data-recipe="1">${RECIPE_QUESTION}</span>
-      <span class="hint" data-q="Revenue by branch this month">Revenue by branch this month</span></div>`;
+      <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
       if (h.dataset.recipe) { showRecipe(); return; }
       $("input").value = h.dataset.q; $("input").focus();
