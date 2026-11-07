@@ -55,6 +55,7 @@
     }
   }
   async function openConversation(id) {
+    setComposer(true);
     state.current = id;
     const conv = state.conversations.find((c) => c.id === id);
     $("conv-title").textContent = conv ? conv.title : "Chat";
@@ -66,6 +67,7 @@
     scrollDown();
   }
   function renderEmpty() {
+    setComposer(true);
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
       <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
       <span class="hint" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span>
@@ -104,11 +106,20 @@
 
 **Quick chocolate glaze (optional):** melt 100 g dark chocolate with ½ cup (120 ml) cream, stir until smooth, and pour over the cooled cake.`;
   const isRecipeQuestion = (text) => text.trim().toLowerCase() === RECIPE_QUESTION.toLowerCase();
+  // The recipe gets a page of its own with no text box or Send button (they are not needed
+  // there); New chat or picking a saved chat brings them back.
+  function setComposer(visible) {
+    $("composer").classList.toggle("hidden", !visible);
+    if (!visible) $("attachment").classList.add("hidden");
+  }
   function showRecipe() {
     $("input").value = ""; $("input").style.height = "auto";
-    if ($("messages").querySelector(".empty")) $("messages").innerHTML = "";
+    state.current = null; renderConversations();
+    $("conv-title").textContent = "Chocolate cake recipe";
+    $("messages").innerHTML = "";
     addBubble("user", RECIPE_QUESTION);
     addBubble("assistant", RECIPE);
+    setComposer(false);
   }
   $("new-chat").addEventListener("click", () => { state.current = null; $("conv-title").textContent = "New chat"; renderConversations(); renderEmpty(); $("input").focus(); });
 
