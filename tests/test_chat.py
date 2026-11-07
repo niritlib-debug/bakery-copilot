@@ -155,3 +155,26 @@ def test_digest_endpoint_needs_secret(client, logged_in):
     assert r.status_code == 200
     assert r.json()["text"].startswith("Bakery Copilot —")
     assert r.json()["sent"] is False
+
+
+def test_recipe_suggestion_saves_a_conversation_without_the_model(client, db, logged_in, fake):
+    from app import recipe
+
+    runs_before = db.query(Run).count()
+    r = client.post("/api/conversations/recipe")
+    assert r.status_code == 200, r.text
+    conv = r.json()
+    assert conv["title"] == recipe.TITLE
+
+    listed = client.get("/api/conversations").json()
+    assert listed[0]["id"] == conv["id"] and listed[0]["title"] == recipe.TITLE
+
+    msgs = client.get(f"/api/conversations/{conv['id']}/messages").json()
+    assert [(m["role"], m["content"]) for m in msgs] == [("user", recipe.QUESTION), ("assistant", recipe.ANSWER)]
+    assert db.query(Run).count() == runs_before  # no model turn, no cost
+    assert not fake.turns  # the scripted model was never asked
+
+
+def test_recipe_requires_login(client):
+    client.cookies.clear()
+    assert client.post("/api/conversations/recipe").status_code == 401
