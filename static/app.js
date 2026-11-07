@@ -70,12 +70,14 @@
     setComposer(true);
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
       <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
-      <span class="hint" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span>
-      <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span></div>`;
+      <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span>
+      <span class="hint recipe-card" role="button" tabindex="0" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
       if (isRecipeQuestion(h.dataset.q)) { showRecipe(); return; }  // straight to the recipe page
       $("input").value = h.dataset.q; $("input").focus();
     }));
+    const card = $("messages").querySelector(".recipe-card");
+    if (card) card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showRecipe(); } });
   }
 
   // ---------- recipe hint ----------
