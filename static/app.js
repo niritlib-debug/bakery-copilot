@@ -73,6 +73,7 @@
       <span class="hint" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span>
       <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
+      if (isRecipeQuestion(h.dataset.q)) { showRecipe(); return; }  // straight to the recipe page
       $("input").value = h.dataset.q; $("input").focus();
     }));
   }
