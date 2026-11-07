@@ -55,6 +55,7 @@
     }
   }
   async function openConversation(id) {
+    setComposer(true);
     state.current = id;
     const conv = state.conversations.find((c) => c.id === id);
     $("conv-title").textContent = conv ? conv.title : "Chat";
@@ -66,18 +67,19 @@
     scrollDown();
   }
   function renderEmpty() {
+    setComposer(true);
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
       <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
-      <span class="hint" data-recipe="1">${RECIPE_QUESTION}</span>
+      <span class="hint" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span>
       <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
-      if (h.dataset.recipe) { showRecipe(); return; }
       $("input").value = h.dataset.q; $("input").focus();
     }));
   }
 
   // ---------- recipe hint ----------
-  // A fixed answer shown in the browser: no model call, no cost, not saved to the conversation.
+  // The hint puts the question in the text box like the others; sending exactly that question
+  // shows this fixed answer in the browser: no model call, no cost, not saved to the conversation.
   const RECIPE_QUESTION = "Do you want a chocolate cake recipe?";
   const RECIPE = `**Simple chocolate cake** (one 24 cm round pan, about 10 slices)
 
@@ -103,10 +105,21 @@
 6. Cool 10 minutes in the pan, then turn out onto a rack and cool completely.
 
 **Quick chocolate glaze (optional):** melt 100 g dark chocolate with ½ cup (120 ml) cream, stir until smooth, and pour over the cooled cake.`;
+  const isRecipeQuestion = (text) => text.trim().toLowerCase() === RECIPE_QUESTION.toLowerCase();
+  // The recipe gets a page of its own with no text box or Send button (they are not needed
+  // there); New chat or picking a saved chat brings them back.
+  function setComposer(visible) {
+    $("composer").classList.toggle("hidden", !visible);
+    if (!visible) $("attachment").classList.add("hidden");
+  }
   function showRecipe() {
-    if ($("messages").querySelector(".empty")) $("messages").innerHTML = "";
+    $("input").value = ""; $("input").style.height = "auto";
+    state.current = null; renderConversations();
+    $("conv-title").textContent = "Chocolate cake recipe";
+    $("messages").innerHTML = "";
     addBubble("user", RECIPE_QUESTION);
     addBubble("assistant", RECIPE);
+    setComposer(false);
   }
   $("new-chat").addEventListener("click", () => { state.current = null; $("conv-title").textContent = "New chat"; renderConversations(); renderEmpty(); $("input").focus(); });
 
@@ -151,6 +164,7 @@
     if (state.streaming) return;
     const text = $("input").value.trim();
     if (!text && !state.image) return;
+    if (!state.image && isRecipeQuestion(text)) { showRecipe(); return; }
     const image = state.image;
     $("input").value = ""; $("input").style.height = "auto"; state.image = null; $("image").value = ""; $("attachment").classList.add("hidden");
     if ($("messages").querySelector(".empty")) $("messages").innerHTML = "";
