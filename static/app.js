@@ -69,7 +69,8 @@
   function renderEmpty() {
     setComposer(true);
     $("messages").innerHTML = `<div class="empty"><p>Ask about sales, or attach an invoice photo.</p>
-      <span class="hint" data-q="How many chocolate cakes were sold last week?">How many chocolate cakes were sold last week?</span>
+      <span class="hint" data-q="How many chocolate cakes were sold in 2026?">How many chocolate cakes were sold in 2026?</span>
+      <span class="hint" data-q="How many cheesecakes were sold in 2026?">How many cheesecakes were sold in 2026?</span>
       <span class="hint" data-q="How many babkas did we sell in each month?">How many babkas did we sell in each month?</span>
       <span class="hint recipe-card" role="button" tabindex="0" data-q="${RECIPE_QUESTION}">${RECIPE_QUESTION}</span></div>`;
     $("messages").querySelectorAll(".hint").forEach((h) => h.addEventListener("click", () => {
