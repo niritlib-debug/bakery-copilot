@@ -6,7 +6,8 @@
   // ---------- helpers ----------
   async function api(path, options = {}) {
     const res = await fetch(path, { headers: { "Content-Type": "application/json" }, credentials: "same-origin", ...options });
-    if (res.status === 401) { showLogin(); throw new Error("Please sign in."); }
+    // A 401 from the sign-in form itself falls through, so its "Wrong username or password." shows.
+    if (res.status === 401 && path !== "/api/login") { showLogin(); throw new Error("Please sign in."); }
     if (!res.ok) {
       let detail = res.statusText;
       try { detail = (await res.json()).detail || detail; } catch (_) {}
