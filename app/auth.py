@@ -1,7 +1,8 @@
 """Shared-password login with a signed cookie. Ten staff, one business (spec.md §1).
 
 Not a user-management system: everyone knows the one password and types their
-own name, which becomes their user row for history and rate limits.
+own name, which becomes their user row for history and rate limits. With
+APP_USERNAME set, the name must be that username, so everyone shares one user.
 """
 from __future__ import annotations
 
@@ -24,6 +25,14 @@ _NAME_RE = re.compile(r"^[\w .'\-֐-׿]{2,40}$")  # latin, digits, Hebrew letter
 
 def password_ok(candidate: str) -> bool:
     return hmac.compare_digest((candidate or "").encode(), settings.app_password.encode())
+
+
+def username_ok(name: str) -> bool:
+    """With APP_USERNAME set, only that username may sign in (any letter case); unset, any name."""
+    if not settings.app_username:
+        return True
+    return hmac.compare_digest(" ".join((name or "").split()).casefold().encode(),
+                               settings.app_username.casefold().encode())
 
 
 def normalise_name(name: str) -> str:

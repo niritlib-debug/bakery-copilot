@@ -25,3 +25,30 @@ def test_tampered_token_is_rejected():
     assert auth.read_token(encode(other_user, sig)) is None
     assert auth.read_token(encode(payload, flipped)) is None
     assert auth.read_token("not-a-token") is None
+
+
+def test_username_check_off_when_not_set(monkeypatch):
+    import dataclasses
+    monkeypatch.setattr(auth, "settings", dataclasses.replace(auth.settings, app_username=None))
+    assert auth.username_ok("Dana") and auth.username_ok("anyone")
+
+
+def test_login_requires_the_set_username(client, monkeypatch):
+    import dataclasses
+    from app import main
+    with_user = dataclasses.replace(auth.settings, app_username="Bell")
+    monkeypatch.setattr(auth, "settings", with_user)
+    monkeypatch.setattr(main, "settings", with_user)
+    client.cookies.clear()
+
+    wrong_user = client.post("/api/login", json={"name": "Dana", "password": "test-pass"})
+    assert wrong_user.status_code == 401
+    assert wrong_user.json()["detail"] == "Wrong username or password."
+    wrong_pass = client.post("/api/login", json={"name": "Bell", "password": "nope"})
+    assert wrong_pass.status_code == 401
+    assert wrong_pass.json()["detail"] == "Wrong username or password."
+
+    ok = client.post("/api/login", json={"name": "Bell", "password": "test-pass"})
+    assert ok.status_code == 200 and ok.json()["name"] == "Bell"
+    lower = client.post("/api/login", json={"name": " bell ", "password": "test-pass"})
+    assert lower.status_code == 200 and lower.json() == ok.json()  # same user, any capitals

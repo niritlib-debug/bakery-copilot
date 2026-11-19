@@ -92,9 +92,11 @@ def health(db: Session = Depends(get_db)):
 
 @app.post("/api/login")
 def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
-    if not auth.password_ok(payload.password):
-        raise HTTPException(401, "Wrong password.")
-    user = auth.get_or_create_user(db, auth.normalise_name(payload.name))
+    # One message for both, so a wrong guess does not say which half was wrong.
+    if not (auth.username_ok(payload.name) and auth.password_ok(payload.password)):
+        raise HTTPException(401, "Wrong username or password.")
+    name = settings.app_username or payload.name  # "bell" and "Bell" are the same user
+    user = auth.get_or_create_user(db, auth.normalise_name(name))
     response.set_cookie(auth.COOKIE_NAME, auth.make_token(user.id, user.name), httponly=True, samesite="lax",
                         secure=settings.is_production, max_age=settings.session_hours * 3600, path="/")
     return {"id": user.id, "name": user.name}

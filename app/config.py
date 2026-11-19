@@ -61,6 +61,7 @@ PRICES_PER_MTOK: dict[str, dict[str, float]] = {
 @dataclass(frozen=True)
 class Settings:
     app_password: str
+    app_username: str | None  # set: the one username that may sign in (APP_USERNAME); unset: any name
     app_secret: str
     database_url: str
     anthropic_api_key: str | None
@@ -110,6 +111,7 @@ def load_settings() -> Settings:
 
     return Settings(
         app_password=app_password or "bakery",
+        app_username=_env("APP_USERNAME"),
         app_secret=app_secret or secrets.token_hex(32),
         database_url=database_url,
         anthropic_api_key=api_key,

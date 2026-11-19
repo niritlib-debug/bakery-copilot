@@ -6,7 +6,7 @@ A chat app for one bakery chain: staff ask about sales and log supplier invoices
 
 - Dana (owner) and three staff. Ten people at most.
 - From phones in the shops and the office laptop. Hebrew and English.
-- Access: one shared team password plus a typed name. Not a public app. Not multi-tenant.
+- Access: one shared team password plus a username. With `APP_USERNAME` set (production: `Bell`), that is the only username accepted and everyone shares its chat history; unset, each person types their own name. Not a public app. Not multi-tenant.
 
 ## 2. Jobs
 
@@ -42,8 +42,8 @@ Multi-tenant. Public sign-up. Payments or bank actions. Editing or deleting invo
 
 ## 7. Done — twelve checks a stranger can run
 
-1. Open the URL, enter a name and the password, see an empty chat.
-2. Wrong password is refused.
+1. Open the URL, enter the username and the password, see an empty chat.
+2. Wrong password, or a username other than `APP_USERNAME`, is refused.
 3. "What sold best in the last week of August 2026?" streams an answer that names a product and the dates used, after a visible `sales_query` call.
 4. "Revenue by branch for August 2026" gives one number per branch.
 5. Attach a clear invoice photo: one row appears under Invoices with status *logged*.
