@@ -5,6 +5,7 @@ loop itself lives in agent.py; this file is doors, locks and plumbing.
 """
 from __future__ import annotations
 
+import hmac
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -33,8 +34,49 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Bakery Copilot", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+# openapi_url=None: no public map of the API (OWASP A02); docs were already off.
+app = FastAPI(title="Bakery Copilot", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
+
+
+# Security headers on every response (OWASP A02). The CSP allows scripts only from this site and
+# the pinned cdnjs file, images from this site or from photos the user attaches (data:/blob:),
+# and no framing, so injected markup cannot load or send anything elsewhere.
+CSP = ("default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; "
+       "img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; "
+       "base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+SECURITY_HEADERS = [
+    (b"content-security-policy", CSP.encode()),
+    (b"x-content-type-options", b"nosniff"),
+    (b"x-frame-options", b"DENY"),
+    (b"referrer-policy", b"no-referrer"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+]
+if settings.is_production:  # HTTPS only there; locally the app runs on plain http
+    SECURITY_HEADERS.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
+
+
+class SecurityHeaders:
+    """Plain ASGI middleware, so streamed chat replies pass through untouched."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                present = {k.lower() for k, _ in message.get("headers", [])}
+                message.setdefault("headers", [])
+                message["headers"] = list(message["headers"]) + [h for h in SECURITY_HEADERS if h[0] not in present]
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+app.add_middleware(SecurityHeaders)
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +120,8 @@ def health(db: Session = Depends(get_db)):
         problems.append(f"db: {type(exc).__name__}")
     if settings.model_provider == "anthropic" and not settings.anthropic_api_key:
         problems.append("ANTHROPIC_API_KEY missing")
-    body = {"status": "ok" if not problems else "degraded", "env": settings.environment, "model": settings.model,
-            "provider": settings.model_provider, "db": "sqlite" if settings.is_sqlite else "postgres", "problems": problems,
+    # Public endpoint: status and problems only, not which model, database or environment (OWASP A02).
+    body = {"status": "ok" if not problems else "degraded", "problems": problems,
             "time": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     if problems:
         raise HTTPException(503, body)
@@ -91,10 +133,17 @@ def health(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @app.post("/api/login")
-def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
+def login(payload: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    key = auth.client_key(request)
+    if auth.login_blocked(key):  # OWASP A07: no unlimited password guessing
+        auth.security_log("login_blocked", client=key)
+        raise HTTPException(429, "Too many sign-in attempts. Try again in 15 minutes.")
     # One message for both, so a wrong guess does not say which half was wrong.
     if not (auth.username_ok(payload.name) and auth.password_ok(payload.password)):
+        auth.record_login_failure(key)
+        auth.security_log("login_failed", client=key, name=payload.name)
         raise HTTPException(401, "Wrong username or password.")
+    auth.clear_login_failures(key)
     name = settings.app_username or payload.name  # "bell" and "Bell" are the same user
     user = auth.get_or_create_user(db, auth.normalise_name(name))
     response.set_cookie(auth.COOKIE_NAME, auth.make_token(user.id, user.name), httponly=True, samesite="lax",
@@ -189,7 +238,9 @@ def stats(request: Request, db: Session = Depends(get_db)):
 @app.post("/internal/digest")
 def digest(db: Session = Depends(get_db), x_cron_secret: str | None = Header(default=None)):
     """Manual or cron trigger for the morning digest. Protected by CRON_SECRET."""
-    if not settings.cron_secret or x_cron_secret != settings.cron_secret:
+    # compare_digest: the check takes the same time however much of a guess is right (OWASP A04).
+    if not settings.cron_secret or not hmac.compare_digest((x_cron_secret or "").encode(), settings.cron_secret.encode()):
+        auth.security_log("digest_bad_secret")
         raise HTTPException(401, "Bad or missing X-Cron-Secret.")
     body = build_digest(db)
     sent = send_digest(body)

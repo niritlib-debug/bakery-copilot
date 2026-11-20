@@ -11,6 +11,7 @@ import hmac
 import hashlib
 import re
 import time
+from collections import defaultdict, deque
 
 from fastapi import HTTPException, Request
 from sqlalchemy import select
@@ -33,6 +34,48 @@ def username_ok(name: str) -> bool:
         return True
     return hmac.compare_digest(" ".join((name or "").split()).casefold().encode(),
                                settings.app_username.casefold().encode())
+
+
+# ---- sign-in throttle (OWASP A07) ----------------------------------------------
+# Failed sign-ins per client in a sliding window, kept in memory: one web replica, and a
+# restart forgetting old failures is acceptable. Success clears the client's count.
+LOGIN_MAX_FAILURES = 10
+LOGIN_WINDOW_S = 15 * 60
+_failures: dict[str, deque] = defaultdict(deque)
+
+
+def client_key(request: Request) -> str:
+    """The caller's address. Behind Railway's proxy the last X-Forwarded-For entry is the one the
+    proxy added; earlier entries are whatever the client sent, so they are not trusted."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded.strip():
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _recent(key: str, now: float) -> deque:
+    q = _failures[key]
+    while q and now - q[0] > LOGIN_WINDOW_S:
+        q.popleft()
+    return q
+
+
+def login_blocked(key: str) -> bool:
+    return len(_recent(key, time.time())) >= LOGIN_MAX_FAILURES
+
+
+def record_login_failure(key: str) -> None:
+    _recent(key, time.time()).append(time.time())
+
+
+def clear_login_failures(key: str) -> None:
+    _failures.pop(key, None)
+
+
+def security_log(event: str, **fields) -> None:
+    """One line per security event in the Railway logs (OWASP A09). Never pass a password."""
+    detail = " ".join(f"{k}={str(v)[:60]!r}" for k, v in fields.items())
+    print(f"security {event} {detail}".rstrip(), flush=True)
 
 
 def normalise_name(name: str) -> str:

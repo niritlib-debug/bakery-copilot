@@ -197,7 +197,10 @@ def _friendly(exc: Exception) -> str:
         if isinstance(exc, anthropic.APIConnectionError):
             return "Could not reach the model. Check the connection and try again."
         if isinstance(exc, anthropic.BadRequestError):
-            return f"The request was rejected: {exc.message if hasattr(exc, 'message') else exc}"
+            # The provider's raw text stays in the runs table; users get a fixed sentence (OWASP A10).
+            if "credit balance" in str(getattr(exc, "message", exc)).lower():
+                return "The Anthropic account is out of credits. Add credits at platform.claude.com, then try again."
+            return "The model rejected the request. The error was recorded; try again or ask Dana."
     return "Something went wrong on our side. The error was recorded; try again."
 
 

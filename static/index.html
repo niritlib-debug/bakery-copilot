@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bakery Copilot</title>
-  <link rel="stylesheet" href="/static/styles.css?v=14">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
+  <link rel="stylesheet" href="/static/styles.css?v=15">
+  <!-- integrity: the browser refuses the file if the CDN ever serves anything else (OWASP A03/A08) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" integrity="sha512-xeUh+KxNyTufZOje++oQHstlMQ8/rpyzPuM+gjMFYK3z5ILJGE7l2NvYL+XfliKURMpBIKKp1XoPN/qswlSMFA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 </head>
 <body>
   <div id="login" class="modal hidden" role="dialog" aria-labelledby="login-title">
@@ -61,6 +62,6 @@
     </aside>
   </div>
 
-  <script src="/static/app.js?v=14" defer></script>
+  <script src="/static/app.js?v=15" defer></script>
 </body>
 </html>
