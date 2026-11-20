@@ -282,7 +282,7 @@ It generates `web-production-xxxx.up.railway.app`. For a custom domain, `railway
 curl -s https://<your-domain>/health
 ```
 
-Expect 200 with `"status": "ok"`, `"env": "production"`, `"db": "postgres"` and `"problems": []`. A 503 names the problem (section 7). Then the password check:
+Expect 200 with `"status": "ok"` and `"problems": []`. (Since the OWASP review it no longer shows the environment, database or model, which are details an attacker does not need.) A 503 names the problem (section 7). Then the password check:
 
 ```bash
 curl -s -X POST https://<your-domain>/api/login -H 'content-type: application/json' -d '{"name":"Check","password":"wrong"}'

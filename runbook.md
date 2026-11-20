@@ -41,6 +41,11 @@ Written while everything works. Each entry is a sequence: click here, run this, 
 2. If the database URL is wrong, `/health` returns 503 with `db:` in `problems`. Check the `DATABASE_URL` reference variable.
 3. Rollback to the previous deploy if users are waiting; fix in a PR.
 
+## Sign-in says "Too many sign-in attempts"
+
+1. Ten wrong sign-ins from one address within 15 minutes lock that address out for the rest of the window. Waiting 15 minutes clears it; so does a redeploy (the counter is in memory).
+2. Railway → web → Logs → search `security login_failed`. Many lines from one `client` you do not recognise mean someone is guessing: change `APP_PASSWORD` (and `APP_USERNAME` if needed) in Variables, then redeploy.
+
 ## Who to call
 
 - You (the implementer), then Dana (owner, decides on cost and data).

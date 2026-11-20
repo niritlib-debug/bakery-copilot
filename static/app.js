@@ -15,11 +15,23 @@
     }
     return res.status === 204 ? null : res.json();
   }
+  function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  // Replies come from the model, and the model reads text from invoice photos, so a reply can
+  // carry HTML someone planted (OWASP A05, XSS). Markdown is rendered, raw HTML is shown as
+  // text, and links may only go to http(s) or mailto. Images are not loaded.
+  const SAFE_URL = /^(https?:|mailto:)/i;
+  if (window.marked) {
+    marked.use({ renderer: {
+      html: (html) => escapeHtml(html),
+      link: (href, title, text) => SAFE_URL.test(href || "")
+        ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text,
+      image: (href, title, text) => escapeHtml(text || ""),
+    } });
+  }
   function render(md) {
     if (window.marked) { try { return marked.parse(md, { breaks: true }); } catch (_) {} }
-    const div = document.createElement("div"); div.textContent = md; return div.innerHTML.replace(/\n/g, "<br>");
+    return escapeHtml(md).replace(/\n/g, "<br>");
   }
-  function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
   function setStatus(text) { $("status").textContent = text || ""; }
   function scrollDown() { const m = $("messages"); m.scrollTop = m.scrollHeight; }
 
@@ -214,7 +226,8 @@
   // ---------- invoices panel ----------
   async function loadInvoices() {
     const rows = await api("/api/invoices");
-    $("invoice-rows").innerHTML = rows.map((r) => `<tr><td>${r.invoice_date || (r.created_at || "").slice(0, 10)}</td><td>${escapeHtml(r.supplier)}<br><small>${escapeHtml(r.invoice_number || "")}</small></td><td>${r.amount == null ? "—" : r.amount.toLocaleString() + " " + r.currency}</td><td><span class="badge ${r.status}">${r.status.replace(/_/g, " ")}</span>${r.flagged ? '<span class="badge flag">flag</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="4"><small>No invoices yet.</small></td></tr>`;
+    // Every field is escaped: supplier, number and currency come from what the model read off a photo.
+    $("invoice-rows").innerHTML = rows.map((r) => `<tr><td>${escapeHtml(r.invoice_date || (r.created_at || "").slice(0, 10))}</td><td>${escapeHtml(r.supplier)}<br><small>${escapeHtml(r.invoice_number || "")}</small></td><td>${r.amount == null ? "—" : escapeHtml(r.amount.toLocaleString() + " " + (r.currency || ""))}</td><td><span class="badge ${escapeHtml(r.status)}">${escapeHtml(r.status.replace(/_/g, " "))}</span>${r.flagged ? '<span class="badge flag">flag</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="4"><small>No invoices yet.</small></td></tr>`;
   }
   $("toggle-invoices").addEventListener("click", async () => { $("invoices").classList.toggle("hidden"); if (!$("invoices").classList.contains("hidden")) await loadInvoices(); });
   $("close-invoices").addEventListener("click", () => $("invoices").classList.add("hidden"));
